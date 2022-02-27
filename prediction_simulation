@@ -1,0 +1,58 @@
+rm(list=ls())
+library(limSolve)
+library(expm)
+library(fGarch)
+n1=50;m=5*n1;h<-5;H1=1;G1=1
+c1=matrix(0,nrow=n1,ncol=2*m)
+for (t in 1:n1){
+for (j1 in 1:m){
+c1[t,j1]=2*cos(t/H1*pi*j1/m)/G1
+c1[t,j1+m]=-2*sin(t/H1*pi*j1/m)/G1
+}
+}
+n=n1+h;it=5000
+pr1=matrix(0,nrow=it,ncol=h);pr2=matrix(0,nrow=it,ncol=h)
+ru=c( -0.5876807, -0.6378196,  0.7115279,  0.9678694)
+phi0=c(ru[1],ru[2]);theta=c(ru[3],ru[4])
+for (k in 1:it){	
+#Gaussian ARMA(2,2)-GARCH(1,1)
+spec = garchSpec(model = list(ar = phi0, ma = theta,omega = 1e-3, alpha = .1, beta=.8))  
+x0=garchSim(spec, n = n)$garch
+
+x1=x0[c(1:n1)]
+A=Solve(c1,x1);w2=0
+for (i1 in 1:h){
+w1=0;t1=n1+i1
+for (j in 1:m){
+w1[j]=2*cos(t1/H1*pi*j/m)/G1*A[j]
+w1[j+m]=-2*sin(t1/H1*pi*j/m)/G1*A[j+m]
+}
+w2[i1]=sum(w1)
+pr1[k,i1]=sum(w1)-x0[n1+i1]
+}
+
+z0=0;z0[1]=0;z0[2]=0
+for (i0 in 3:(n1+h)){
+z0[i0]=x0[i0]-phi0[1]*x0[i0-1]-phi0[2]*x0[i0-2]-theta[1]*z0[i0-1]-theta[2]*z0[i0-2]	
+}
+phi1=matrix(0,nrow=4,ncol=4)
+phi1[1,]=c(phi0,theta);phi1[2,]=c(1,0,0,0)
+phi1[4,]=c(0,0,1,0)
+e1=matrix(c(1,0,0,0),nrow=4,ncol=1)
+for (i2 in 1:h){
+pr2[k,i2]=t(e1)%*%(phi1%^%i2)%*%matrix(c(x0[n1],x0[n1-1],z0[n1],z0[n1-1]),nrow=4,ncol=1)-x0[n1+i2]
+}
+}
+mesq1=0;mesq2=0
+for (i in 1:h){
+mesq1[i]=sqrt(mean(abs(pr1[,i])^2))
+mesq2[i]=sqrt(mean(abs(pr2[,i])^2))
+}
+
+plot(meabs1,type="l")
+lines(meabs2,lty=2)
+
+plot(mesq1,type="l",ylim=c(min(mesq1,mesq2),max(mesq1,mesq2)),xlab="Number of steps ahead",ylab="RMSE")
+lines(mesq2,lty=2)
+legend(1,.108, legend=c("Prediction using the Riemann sum","Prediction using Hilbert spaces"),
+lty=1:2, cex=1.1)
