@@ -49,9 +49,6 @@ mesq1[i]=sqrt(mean(abs(pr1[,i])^2))
 mesq2[i]=sqrt(mean(abs(pr2[,i])^2))
 }
 
-plot(meabs1,type="l")
-lines(meabs2,lty=2)
-
 plot(mesq1,type="l",ylim=c(min(mesq1,mesq2),max(mesq1,mesq2)),xlab="Number of steps ahead",ylab="RMSE")
 lines(mesq2,lty=2)
 legend(1,.108, legend=c("Prediction using the Riemann sum","Prediction using Hilbert spaces"),
