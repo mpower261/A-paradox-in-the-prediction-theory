@@ -10,16 +10,17 @@ c1[t,j1]=2*cos(t/H1*pi*j1/m)/G1
 c1[t,j1+m]=-2*sin(t/H1*pi*j1/m)/G1
 }
 }
-n=n1+h;it=5000
+it=10000
 pr1=matrix(0,nrow=it,ncol=h);pr2=matrix(0,nrow=it,ncol=h)
-ru=c( -0.5876807, -0.6378196,  0.7115279,  0.9678694)
+pr11=matrix(0,nrow=it,ncol=h);pr22=matrix(0,nrow=it,ncol=h)
+ru=c(-0.33035673,-0.33838517,-0.08541237,0.99873867)
 phi0=c(ru[1],ru[2]);theta=c(ru[3],ru[4])
 for (k in 1:it){	
-#Gaussian ARMA(2,2)-GARCH(1,1)
-spec = garchSpec(model = list(ar = phi0, ma = theta,omega = 1e-3, alpha = .1, beta=.8))  
-x0=garchSim(spec, n = n)$garch
-
-x1=x0[c(1:n1)]
+n2=2*n1+h
+spec = garchSpec(model = list(ar = phi0, ma = theta,omega = 1e-3, alpha = .2, beta=.7))  
+x0=garchSim(spec, n = n2)$garch
+################
+x1=x0[c((n2-n1-h+1):(n2-h))]
 A=Solve(c1,x1);w2=0
 for (i1 in 1:h){
 w1=0;t1=n1+i1
@@ -28,11 +29,11 @@ w1[j]=2*cos(t1/H1*pi*j/m)/G1*A[j]
 w1[j+m]=-2*sin(t1/H1*pi*j/m)/G1*A[j+m]
 }
 w2[i1]=sum(w1)
-pr1[k,i1]=sum(w1)-x0[n1+i1]
+pr1[k,i1]=sum(w1)-x0[n2-h+i1]
 }
 
 z0=0;z0[1]=0;z0[2]=0
-for (i0 in 3:(n1+h)){
+for (i0 in 3:n2){
 z0[i0]=x0[i0]-phi0[1]*x0[i0-1]-phi0[2]*x0[i0-2]-theta[1]*z0[i0-1]-theta[2]*z0[i0-2]	
 }
 phi1=matrix(0,nrow=4,ncol=4)
@@ -40,16 +41,19 @@ phi1[1,]=c(phi0,theta);phi1[2,]=c(1,0,0,0)
 phi1[4,]=c(0,0,1,0)
 e1=matrix(c(1,0,0,0),nrow=4,ncol=1)
 for (i2 in 1:h){
-pr2[k,i2]=t(e1)%*%(phi1%^%i2)%*%matrix(c(x0[n1],x0[n1-1],z0[n1],z0[n1-1]),nrow=4,ncol=1)-x0[n1+i2]
+pr2[k,i2]=t(e1)%*%(phi1%^%i2)%*%matrix(c(x0[n2-h],x0[n2-h-1],z0[n2-h],z0[n2-h-1]),nrow=4,ncol=1)-x0[n2-h+i2]
 }
 }
-mesq1=0;mesq2=0
+mesq1=0;meabs1=0
+meabs2=0;mesq2=0
 for (i in 1:h){
+meabs1[i]=mean(abs(pr1[,i]))
 mesq1[i]=sqrt(mean(abs(pr1[,i])^2))
+meabs2[i]=mean(abs(pr2[,i]))
 mesq2[i]=sqrt(mean(abs(pr2[,i])^2))
 }
 
 plot(mesq1,type="l",ylim=c(min(mesq1,mesq2),max(mesq1,mesq2)),xlab="Number of steps ahead",ylab="RMSE")
 lines(mesq2,lty=2)
-legend(1,.108, legend=c("Prediction using the Riemann sum","Prediction using Hilbert spaces"),
+legend(2.4,.1455, legend=c("Prediction using the Riemann sum","Prediction using Hilbert spaces"),
 lty=1:2, cex=1.1)
